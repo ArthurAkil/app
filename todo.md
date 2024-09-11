@@ -1,0 +1,7 @@
+- Criar metas
+- Listar metas
+    - Metas concluidas
+    - Metas abertas
+- Marcar/Desmarcar metas como realizadas
+- Remover metas
+- Sistema de mensagens
