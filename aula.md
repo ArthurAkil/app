@@ -55,3 +55,7 @@ Acesso a propriedades de objetos
 [x] criar, passar argumento
 [x] executar
 [x] arro function / named function
+
+# Estrutura de repetição
+
+[x] while
