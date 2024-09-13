@@ -1,4 +1,4 @@
-const { select, input } = require('@inquirer/prompts')
+const { select, input, checkbox } = require('@inquirer/prompts')
 //vai buscar dentro desse informação @inquirer/prompts o select
 // importou o select do @inquirer/prompts
 
@@ -15,25 +15,38 @@ const cadastrarMeta = async() => {
     metas.push({value: meta, checked: false})
 }
 
-function listarMetas() {
-    if(metas.length == 0){
-        console.log("Não há metas cadastradas.")
+const listarMetas = async() =>{
+    const respostas = await checkbox({
+        message: "Use as setas para mudar de metas, o espaço para marcar ou desmarcar e o Enter para finalizar essa etapa.",
+        // "...metas" é jogar tudo de metas ai dentro - spreed operator 
+        choices: [...metas],
+        instructions: false,
+    })
+
+    if(respostas.length == 0){
+        console.log("Nenhuma meta selecionada.")
         return
     }
-    for (var i = 0; i < metas.length; i++) {
-        console.log(metas[i].value)
-    }
+
+    metas.forEach((m) => {
+        m.checked = false
+    })
+
+    respostas.forEach((resposta) => {
+        const meta = metas.find((m) => {
+            return m.value == resposta
+        })
+        
+        meta.checked = true
+    })
+
+    console.log("Meta(s) macarada(s) como concluída(s).")
 }
 
 
-async function start() {
-//ou const start = async () => {}
-    while (true){
-        
+const start = async () => {
+    while(true){
         const opcao = await select({
-            // toda função que possuir o await dentro dela ela é precisa do ASYNC no começo da função
-            // o await esperando o usuário selecionar algo e quando selecionar algo o código continua, sem o await daria erro pois o código iria sem esperar o usuário selecionar
-            // no select eu preciso de uma mensagem pra mostrar ao usuario e choices, obrigatorio os dois e choices deve ser um array
             message: "Menu >",
             choices: [
                 {
@@ -51,18 +64,18 @@ async function start() {
             ]
         })
 
-        switch (opcao){
+        switch(opcao){
             case "cadastrar":
                 await cadastrarMeta()
-                break;
+                break
             case "listar":
-                listarMetas()
-                break;
+                await listarMetas()
+                break
             case "sair":
-                console.log("saindo..")
-                return
+                console.log('Até a próxima!')
+                return 
         }
-    } 
+    }
 }
 
 start()
