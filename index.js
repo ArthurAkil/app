@@ -1,84 +1,213 @@
-/*
-// hello world 
-// comentário em js
+const { select, input, checkbox } = require('@inquirer/prompts')
+const fs = require("fs").promises
+//vai buscar dentro desse informação @inquirer/prompts o select
+// importou o select do @inquirer/prompts
+var mensagem = "Bem vindo ao APP de metas.";
+var metas
 
-var mensagem = "olá, mundo!"
-
-const mensagemNaoAlterada = "não pode alterar com constante(const)"
-// const é uma variavel que não muda o valor
-
-console.log(mensagem);
-
-// {} escopo - grupo de código 
-// tudo escrito fora das chaves é uma variável global
-// escrito dentro do escopo é variável local
-// mensagemNãoalterada global e mensagemNãoAlterada local, mesmo nome mas variáveis diferentes por estarem dentro e fora do escopo
-{
-   const mensagemNaoAlterada = "variavel com o mesmo nome porém local"
-   console.log(mensagemNaoAlterada);
+const carregarMetas = async() => {
+    try{
+        const dados = await fs.readFile("metas.json", "utf-8")
+        metas = JSON.parse(dados)
+    }
+    catch(erro){
+        metas = []
+    }
 }
 
-console.log(mensagemNaoAlterada);
-*/
+const salvarMetas = async() => {
+    await fs.writeFile("metas.json", JSON.stringify(metas, null, 2))
+}
 
-// Arrays, objetos
-/*
-var metas = ["arthur","alo"]
+const cadastrarMeta = async() => {
+    const meta = await input({message: "Digite a meta:"})
 
-console.log(metas[1] +", "+ metas[0]) //como é string caso tenha só o + contatena
-*/
+    if (meta.length == 0) {
+        mensagem = "A meta não pode ser vazia."
+        return
+    }
 
-// semelhante a um dicionario em python: (utilizei value e checked mas posso definir os nomes desses atributos)
+    metas.push({value: meta, checked: false})
 
-var meta = {
-    //Armazena o valor associado ao objeto. Neste exemplo, o valor da meta é "ler um livro todo mês". Pode ser qualquer tipo de dado (texto, número, booleano, etc.)
-    value: "ler um livro todo mês", //valor da meta
+    mensagem = "Meta cadastrada com sucesso!"
+}
 
+const listarMetas = async() =>{
+    if (metas.length == 0){
+        mensagem = "Não existem metas!"
+        return
+    }
 
-    //Geralmente utilizado para representar o estado de seleção ou de conclusão de algo. Neste caso, checked: false significa que a meta ainda não foi concluída.
-    checked: false,
+    const respostas = await checkbox({
+        message: "Use as setas para mudar de metas, o espaço para marcar ou desmarcar e o Enter para finalizar essa etapa.",
+        // "...metas" é jogar tudo de metas ai dentro - spreed operator 
+        choices: [...metas],
+        instructions: false,
+    })
+
+    metas.forEach((m) => {
+        m.checked = false
+    })
+
+    if(respostas.length == 0){
+        mensagem = "Nenhuma meta selecionada."
+        return
+    }
+
+    respostas.forEach((resposta) => {
+        const meta = metas.find((m) => {
+            return m.value == resposta
+        })
+        
+        meta.checked = true
+    })
+
+    mensagem ="Meta(s) macarada(s) como concluída(s)."
+}
+
+const metasRealizadas = async() =>{
+    if (metas.length == 0){
+        mensagem = "Não existem metas!"
+        return
+    }
+
+    // sempre vai receber uma função
+    // sempre que o retorno for verdadeiro, vai pegar o parametro e colocar em outra lista
+    const realizadas = metas.filter((meta) => {
+        return meta.checked
+    })
+
+    if(realizadas.length == 0){
+        mensagem ="Não existem metas realizadas."
+        return
+    }
+
+    await select({
+        message: "Metas realizadas " + realizadas.length+":",
+        choices: [...realizadas] //spread operator - nessa forma tá pegando tudo que dentro dentro de realizadas e jogando em um novo array
+    })
+}
+
+const metasAbertas = async() =>{
+    if (metas.length == 0){
+        mensagem = "Não existem metas!"
+        return
+    }
+
+    const abertas = metas.filter((meta) => {
+        return !meta.checked
+    })
+
+    if (abertas.length == 0){
+        mensagem ="Não existem metas abertas!"
+        return
+    }
+
+    await select({
+        message: "Metas abertas "+ abertas.length+":",
+        choices: [...abertas]
+    })
+}
+
+const deletarMetas = async() =>{
+    if (metas.length == 0){
+        mensagem = "Não existem metas!"
+        return
+    }
     
-    // info são parâmetros
-    log: (info) => {
-        console.log(info)
-    },
+    const metasDesmarcadas = metas.map((meta) => {
+        return {value: meta.value, checked: false}
+    })
 
-    isChecked: () => {
-        if(meta.checked == true){
-            console.log("Meta concluída.")
-        } else {
-            console.log("Meta não concluída.")
+    const itensADeletar = await checkbox({
+        message: "Selecione uma meta para deletar.",
+        // "...metas" é jogar tudo de metas ai dentro - spreed operator 
+        choices: [...metasDesmarcadas],
+        instructions: false,
+    })
+
+    if(itensADeletar.length == 0){
+        mensagem = "Nenhum item para deletar."
+    }
+
+    itensADeletar.forEach((item) =>{
+        metas = metas.filter((meta) =>{
+            return meta.value != item
+        })
+    })
+
+    mensagem = "Meta(s) deletada(s) com sucesso."
+}
+
+const mostrarMessagem = () =>{
+    console.clear();
+
+    if (mensagem != ""){
+        console.log(mensagem)
+        console.log("")
+        mensagem = ""
+    }
+}
+
+
+
+const start = async() => {
+    await carregarMetas()
+    while(true){
+        mostrarMessagem()
+        await salvarMetas()
+
+        const opcao = await select({
+            message: "Menu >",
+            choices: [
+                {
+                    name: "Cadastrar meta",
+                    value: "cadastrar"
+                },
+                {
+                    name: "Listar metas",
+                    value: "listar"
+                },
+                {
+                    name: "Metas realizadas",
+                    value: "realizadas"
+                },
+                {
+                    name: "Metas abertas",
+                    value: "abertas"
+                },
+                {
+                    name: "Deletar metas",
+                    value: "deletar"
+                },
+                {
+                    name: "Sair",
+                    value: "sair"
+                }
+            ]
+        })
+
+        switch(opcao){
+            case "cadastrar":
+                await cadastrarMeta()
+                break
+            case "listar":
+                await listarMetas()
+                break
+            case "realizadas":
+                await metasRealizadas()
+                break
+            case "abertas":
+                await metasAbertas()
+                break
+            case "deletar":
+                await deletarMetas()
+                break
+            case "sair":
+                console.log('Até a próxima!')
+                return 
         }
     }
 }
 
-
-var metas = [
-    meta,
-    {
-        value: "caminhar 20 minutos todos os dias",
-        checked: false
-    }
-]
-console.log(metas[1].value)
-
-/*
-console.log(meta)
-meta.value = "agora a meta é varrer a casa"
-console.log(meta.value)
-console.log(meta.checked)
-meta.log(meta.value)
-meta.isChecked()
-*/
-
-// function
-
-//1. arrow function
-// pegando uma arrow function e atribuindo a uma variavel
-
-// const criarMeta = () => {}
-
-//2. named function
-// e aqui criando uma função diretamente e chamando ela de criar meta
-
-// function criarMeta() {}
+start()
